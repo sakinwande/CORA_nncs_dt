@@ -91,7 +91,7 @@ timerVal = tic;
     R = reach(obj, params, options, spec);
 
     % check if initial set should be split
-    isVeri = (R(end).timePoint.time{end} == params.tFinal && check(spec, R));
+    %isVeri = (R(end).timePoint.time{end} == params.tFinal && check(spec, R));
 %     if ~isVeri && splitR0 > 0
 %         % reachability analysis has not finished
 %         % split recursively
@@ -103,8 +103,12 @@ timerVal = tic;
 %     end
 
     % specs already checked
-    isRchecked = true;
+   res = [];
+   isRchecked = true;
+   isVio = false;
+   isVeri = false;
 % end
+simRes = [];
 
 % stop time
 tComp = toc(timerVal);
@@ -140,10 +144,10 @@ if isempty(res)
     end
 end
 
-if verbose
-    tTotal = tSim+tVio+tComp+tVeri;
-    disp(['Total Time: ', num2str(tTotal)]);
-end
+% if verbose
+%     tTotal = tSim+tVio+tComp+tVeri;
+%     disp(['Total Time: ', num2str(tTotal)]);
+% end
 
 end
 

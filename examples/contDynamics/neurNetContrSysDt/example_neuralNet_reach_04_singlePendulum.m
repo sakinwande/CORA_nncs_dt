@@ -35,8 +35,12 @@ rng(1)
 
 R0 = interval([1; 0], [1.175; 0.2]);
 
-params.tFinal = 1;
+params.tFinal = 0.55;
 params.R0 = polyZonotope(R0);
+
+polyZono.maxPolyZonoRatio = inf;
+polyZono.maxDepGenOrder = 30;
+polyZono.restructureTechnique = 'reduceFullGirard';
 
 % Reachability Settings ---------------------------------------------------
 
@@ -45,6 +49,9 @@ options.alg = 'lin';
 options.tensorOrder = 2;
 options.taylorTerms = 1;
 options.zonotopeOrder = 10;
+options.errorOrder = 1;
+options.lagrangeRem.simplify = 'simplify';
+options.polyZono = polyZono;
 
 % Options for NN evaluation -----------------------------------------------
 
@@ -94,12 +101,12 @@ plotOverTime(specUnsafe, 1, 'DisplayName', 'Unsafe set');
 
 % plot reachable set
 useCORAcolors("CORA:contDynamics")
-plotOverTime(R, 1, 'DisplayName', 'Reachable set');
+plotOverTime(R(1:5), 1, 'DisplayName', 'Reachable set');
 updateColorIndex(); % don't plot initial set
-% plotOverTime(R(1).R0, 1, 'DisplayName', 'Initial set');
+plotOverTime(R(1).R0, 1, 'DisplayName', 'Initial set');
 
 % plot simulations
-plotOverTime(simRes, 1, 'DisplayName', 'Simulations');
+%plotOverTime(simRes, 1, 'DisplayName', 'Simulations');
 
 % labels and legend
 xlabel('time');

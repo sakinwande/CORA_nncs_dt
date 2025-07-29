@@ -39,6 +39,11 @@ R0 = interval([90; 32; 0; 10; 30; 0], [110; 32.2; 0; 11; 30.2; 0]);
 params.tFinal = 5;
 params.R0 = polyZonotope(R0);
 
+
+polyZono.maxPolyZonoRatio = inf;
+polyZono.maxDepGenOrder = 30;
+polyZono.restructureTechnique = 'reduceFullGirard';
+
 % Reachability Settings ---------------------------------------------------
 
 options.timeStep = 0.1;
@@ -46,6 +51,10 @@ options.alg = 'lin';
 options.tensorOrder = 2;
 options.taylorTerms = 1;
 options.zonotopeOrder = 10;
+options.errorOrder = 1;
+options.lagrangeRem.simplify = 'simplify';
+options.polyZono = polyZono;
+
 
 % Options for NN evaluation -----------------------------------------------
 
@@ -64,7 +73,7 @@ D_default = 10;
 % open-loop system
 f = @(x, u) [x(2); x(3); -2 * x(3) + 2 * a_lead - u_f * x(2)^2; ...
     x(5); x(6); -2 * x(6) + 2 * u(1) - u_f * x(4)^2];
-sys = nonlinearSys(f);
+sys = nonlinearSysDT(f,0.1);
 
 % affine map x_ = C*x + k mapping state x to input of neural network x_
 C = [0, 0, 0, 0, 0, 0; 0, 0, 0, 0, 0, 0; 0, 0, 0, 0, 1, 0; 1, 0, 0, -1, 0, 0; 0, 1, 0, 0, -1, 0];
@@ -84,51 +93,51 @@ b = [{k}, b];
 
 nn = neuralNetwork.getFromCellArray(W, b, actFun);
 
-sys = neurNetContrSys(sys, nn, 0.1);
+sys = neurNetContrSysDt(sys, nn, 0.1);
 
 % Simulation --------------------------------------------------------------
-
-timerVal = tic;
-simRes = simulateRandom(sys, params);
-tSim = toc(timerVal);
-disp(['Time to compute random simulations: ', num2str(tSim)]);
-
-% Check Violation --------------------------------------------------------
-
-timerVal = tic;
-simResDistances = [];
-isVio = false;
-for i = 1:length(simRes)
-    simRes_i = simRes(i);
-    for j = 1:length(simRes_i.x)
-        x = simRes_i.x{j};
-        x = DM * x' + Db;
-        
-        simResDistances_ij = simResult({x'}, simRes_i.t(j));
-        if isempty(simResDistances)
-            simResDistances = simResDistances_ij;
-        else
-            simResDistances = add(simResDistances, simResDistances_ij);
-        end
-            
-        % relative distance D_rel
-        distance = x(1, :);
-        safe_distance = x(2, :);
-        % safe distance D_safe
-        isVio = isVio || ~all(distance >= safe_distance);
-
-    end
-end
-tVio = toc(timerVal);
-disp(['Time to check violation in simulations: ', num2str(tVio)]);
-
-if isVio
-    res = 'VIOLATED';
-    R = params.R0;
-    tComp = 0;
-    tVeri = 0;
-    
-else
+% 
+% timerVal = tic;
+% simRes = simulateRandom(sys, params);
+% tSim = toc(timerVal);
+% disp(['Time to compute random simulations: ', num2str(tSim)]);
+% 
+% % Check Violation --------------------------------------------------------
+% 
+% timerVal = tic;
+% simResDistances = [];
+% isVio = false;
+% for i = 1:length(simRes)
+%     simRes_i = simRes(i);
+%     for j = 1:length(simRes_i.x)
+%         x = simRes_i.x{j};
+%         x = DM * x' + Db;
+%         
+%         simResDistances_ij = simResult({x'}, simRes_i.t(j));
+%         if isempty(simResDistances)
+%             simResDistances = simResDistances_ij;
+%         else
+%             simResDistances = add(simResDistances, simResDistances_ij);
+%         end
+%             
+%         % relative distance D_rel
+%         distance = x(1, :);
+%         safe_distance = x(2, :);
+%         % safe distance D_safe
+%         isVio = isVio || ~all(distance >= safe_distance);
+% 
+%     end
+% end
+% tVio = toc(timerVal);
+% disp(['Time to check violation in simulations: ', num2str(tVio)]);
+% 
+% if isVio
+%     res = 'VIOLATED';
+%     R = params.R0;
+%     tComp = 0;
+%     tVeri = 0;
+%     
+% else
     % Reachability Analysis -----------------------------------------------
 
     timerVal = tic;
@@ -163,7 +172,7 @@ else
     else
         res = 'UNKNOWN';
     end
-end
+%end
 
 tTotal = tSim+tVio+tComp+tVeri;
 disp(['Total Time: ', num2str(tTotal)]);

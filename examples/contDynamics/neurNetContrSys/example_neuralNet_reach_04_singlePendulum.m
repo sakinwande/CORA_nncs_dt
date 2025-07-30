@@ -40,7 +40,7 @@ params.R0 = polyZonotope(R0);
 
 % Reachability Settings ---------------------------------------------------
 
-options.timeStep = 0.02;
+options.timeStep = 0.05;
 options.alg = 'lin';
 options.tensorOrder = 2;
 options.taylorTerms = 1;

@@ -35,17 +35,17 @@ rng(1)
 
 R0 = interval([1; 0], [1.175; 0.2]);
 
-params.tFinal = 0.55;
+params.tFinal = 1;
 params.R0 = polyZonotope(R0);
 
-polyZono.maxPolyZonoRatio = inf;
+polyZono.maxPolyZonoRatio = 50;
 polyZono.maxDepGenOrder = 30;
-polyZono.restructureTechnique = 'reduceFullGirard';
+polyZono.restructureTechnique = 'zonotopeGirard';
 
 % Reachability Settings ---------------------------------------------------
 
 options.timeStep = 0.05;
-options.alg = 'lin';
+options.alg = 'poly-adaptive';
 options.tensorOrder = 2;
 options.taylorTerms = 1;
 options.zonotopeOrder = 10;
@@ -86,7 +86,7 @@ specUnsafe = specification(safeSet * 0.5 + 1, 'unsafeSet', spec.time);
 % Verification ------------------------------------------------------------
 
 t = tic;
-[res, R, simRes] = verify(sys, spec, params, options, true);
+[res, R, ~] = verify(sys, spec, params, options, true);
 tTotal = toc(t);
 disp(['Result: ' res])
 
@@ -101,7 +101,7 @@ plotOverTime(specUnsafe, 1, 'DisplayName', 'Unsafe set');
 
 % plot reachable set
 useCORAcolors("CORA:contDynamics")
-plotOverTime(R(1:5), 1, 'DisplayName', 'Reachable set');
+plotOverTime(R, 1, 'DisplayName', 'Reachable set');
 updateColorIndex(); % don't plot initial set
 plotOverTime(R(1).R0, 1, 'DisplayName', 'Initial set');
 

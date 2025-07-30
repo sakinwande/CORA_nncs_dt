@@ -214,44 +214,49 @@ res = true;
 
 % init time steps
 tVec = params.tStart:options.timeStep:params.tFinal;
-if tVec(end) ~= params.tFinal
-    % add tFinal if sampling time and intermediate time horizon don't match
-    % resulting in a partial time step at the end.
-    tVec(end+1) = params.tFinal;
-end
+% if tVec(end) ~= params.tFinal
+%     % add tFinal if sampling time and intermediate time horizon don't match
+%     % resulting in a partial time step at the end.
+%     tVec(end+1) = params.tFinal;
+% end
 
-% initialize cell-arrays that store the reachable set
-Rint.set = cell(length(tVec)-1, 1);
-Rint.time = Rint.set;
-Rpoint.set = cell(length(tVec), 1);
-Rpoint.time = Rpoint.set;
-Rpoint.set{1} = params.R0;
-Rpoint.time{1} = params.tStart;
-
-% initialize cell array that stores the reachable sets
+% % initialize cell-arrays that store the reachable set
+% Rint.set = cell(length(tVec)-1, 1);
+% Rint.time = Rint.set;
+% Rpoint.set = cell(length(tVec), 1);
+% Rpoint.time = Rpoint.set;
+% Rpoint.set{1} = params.R0;
+% Rpoint.time{1} = params.tStart;
+% 
+% % initialize cell array that stores the reachable sets
 t = params.tStart:sys.dt:params.tFinal;
 steps = length(t)-1;
-timePoint.set = cell(steps+1,1);
-Verror.L_y = cell(steps+1,1);
-Verror.L_x = cell(steps+1,1);
-
-
-% add constant input
-if isfield(params,'uTrans')
-    params.U = params.U + params.uTrans;
-    params.uTrans = 0;
-end
-U0 = params.U;
-
-% add input for time 1
-if isfield(params,'uTransVec')
-    params.U = U0 + params.uTransVec(:,1);
-end  
-
-% compute output for time 1
-[timePoint.set{1}, Verror.L_y{1}] = outputSet(sys,params.R0,params,options);
+% timePoint.set = cell(steps+1,1);
+% Verror.L_y = cell(steps+1,1);
+% Verror.L_x = cell(steps+1,1);
+% 
+% 
+% % add constant input
+% if isfield(params,'uTrans')
+%     params.U = params.U + params.uTrans;
+%     params.uTrans = 0;
+% end
+% U0 = params.U;
+% 
+% % add input for time 1
+% if isfield(params,'uTransVec')
+%     params.U = U0 + params.uTransVec(:,1);
+% end  
+% 
+% % compute output for time 1
+% [timePoint.set{1}, Verror.L_y{1}] = outputSet(sys,params.R0,params,options);
 Rnext = params.R0;
-Verror.L_x{1} = zonotope(zeros(size(Rnext.c)));
+% Verror.L_x{1} = zonotope(zeros(size(Rnext.c)));
+
+Rpoint.set = cell(length(tVec), 1);
+Rpoint.time = Rpoint.set;
+Rpoint.set{1} = outputSet(sys, params.R0, params, options);
+Rpoint.time{1} = params.tStart;
 
 
 % loop over all reachability steps
@@ -259,21 +264,118 @@ for i = 1:steps
     options.timeStep = tVec(i+1) - tVec(i);
 
     params.uTrans = params.uTransVec(:, i);
-    [Rnext,options,Verror.L_x{i+1}] = linReach(sys, Rnext, params, options);
+    [Rnext,options,~] = linReach(sys, Rnext, params, options);
 
     % add input for time i if a trajectory should be tracked
-    if isfield(params,'uTransVec')
-        params.U = U0 + params.uTransVec(:,i+1);
-    end  
+%     if isfield(params,'uTransVec')
+%         params.U = U0 + params.uTransVec(:,i+1);
+%     end  
     % compute output set
-    [timePoint.set{i+1}, Verror.L_y{i+1}] = outputSet(sys,Rnext,params,options);
+        % Apply Euler Integration 
+    Rnext_dt = Rpoint.set{i} + options.timeStep*Rnext;
+    % save reachable set
+%     Rint.set{i} = Rnext;
+    Rpoint.set{i+1} = outputSet(sys, Rnext_dt, params, options);
+%     Rint.time{i} = interval(tVec(i), tVec(i+1));
+    Rpoint.time{i+1} = tVec(i+1);
+    Rpoint.set{i+1} = reduce( Rpoint.set{i+1},...
+                options.reductionTechnique,options.zonotopeOrder);
 end
 
 % create resulting reachSet object
-timePoint.time = num2cell(t(1:end)');
-R = reachSet(timePoint);
-
+R = reachSet(Rpoint);
 end
+
+% function [R, res] = aux_reachability(sys, params, options, spec)
+% % compute the reachable set of the controlled system (without performing
+% % option checks)
+% 
+% res = true;
+% 
+% % init time steps
+% tVec = params.tStart:options.timeStep:params.tFinal;
+% if tVec(end) ~= params.tFinal
+%     % add tFinal if sampling time and intermediate time horizon don't match
+%     % resulting in a partial time step at the end.
+%     tVec(end+1) = params.tFinal;
+% end
+% 
+% % initialize cell-arrays that store the reachable set
+% Rint.set = cell(length(tVec)-1, 1);
+% Rint.time = Rint.set;
+% Rpoint.set = cell(length(tVec), 1);
+% Rpoint.time = Rpoint.set;
+% Rpoint.set{1} = params.R0;
+% Rpoint.time{1} = params.tStart;
+% 
+% % loop over all reachability steps
+% % loop over all parallel sets
+% setCounter = 1; Rtp = {}; Rti = {}; R0 = {};
+% for i = 1:length(tVec) - 1
+%     options.timeStep = tVec(i+1) - tVec(i);
+% 
+%     % compute reachable set for one reachability step
+%     try
+%         params.uTrans = params.uTransVec(:, i);
+%         if i == 1
+%             %[Rnext, options] = initReach(sys, params.R0, params, options);
+%             [Rtemp_tp,options,~] = linReach(sys,params.R0,params,options);
+% %             Rtp{setCounter} = Rtemp_tp;
+% %             %Rtp{setCounter}.prev = i;
+% %             %Rti{setCounter} = Rtemp_ti;
+% %             R0{setCounter} = params.R0;
+% %             Rnext.tp = Rtp;
+% %             %Rnext.ti = Rti;
+% %             Rnext.R0 = R0;
+%             % initReach does not reduce
+%             %Rnext.ti{1} = reduce(Rnext.ti{1},...
+%                 %options.reductionTechnique,options.zonotopeOrder);
+%             [Rnext,~] = outputSet(sys,Rtemp_tp,params,options);
+%             Rnext = reduce(Rnext,...
+%                 options.reductionTechnique,options.zonotopeOrder);
+%         else
+%            Rnext = post(sys, Rnext, params, options);
+%         end
+%     catch ME
+%         R = aux_constructReachSet(Rpoint, Rint, i-1);
+% 
+%         if strcmp(ME.identifier, 'reach:setexplosion') ...
+%             || strcmp(ME.identifier, 'CORA:reachSetExplosion')
+%             % display information to user
+%             fprintf("\n");
+%             disp(ME.message);
+%             disp("  Step "+i+" at time t="+params.tStart);
+%             disp("The reachable sets until the current step are returned.");
+%             fprintf("\n");
+%             res = false;
+%             return;
+% 
+%         else
+%             % any other run-time error: report information
+%             rethrow(ME);
+%         end
+%     end
+% 
+%     % save reachable set
+%     %Rint.set{i} = Rnext.ti{1};
+%     Rpoint.set{i+1} = Rnext;
+%     %Rint.time{i} = interval(tVec(i), tVec(i+1));
+%     Rpoint.time{i+1} = tVec(i+1);
+% 
+%     % check specification
+% %     if ~isempty(spec)
+% %         res = check(spec, Rnext.ti, Rint.time{i});
+% %         if ~res
+% %             R = aux_constructReachSet(Rpoint, Rint, i);
+% %             return;
+% %         end
+% %     end
+% end
+% 
+% % create resulting reachSet object
+% R = reachSet(Rpoint);
+% 
+% end
 
 function R = aux_constructReachSet(Rpoint, Rint, i)
 % construct a reachable set object

@@ -34,30 +34,31 @@ disp("BENCHMARK: Sherlock-Benchmark 10 (Unicycle Car Model)");
 params.tFinal = 10;
 params.R0 = polyZonotope(interval([9.5; -4.5; 2.1; 1.5], [9.55; -4.45; 2.11; 1.51]));
 
+polyZono.maxPolyZonoRatio = 50;
+polyZono.maxDepGenOrder = 30;
+polyZono.restructureTechnique = 'zonotopeGirard';
 % Reachability Settings ---------------------------------------------------
-dt = 0.01;
+dt = 0.2;
 options.timeStep = dt;
-options.alg = 'lin';
-options.tensorOrder = 2;
-options.taylorTerms = 1;
+options.alg = 'poly-adaptive';
+options.tensorOrder = 3;
+options.taylorTerms = 10;
 options.zonotopeOrder = 10;
+options.errorOrder = 1;
+options.lagrangeRem.simplify = 'simplify';
+options.polyZono = polyZono;
 
 % Options for NN evaluation -----------------------------------------------
 %Options defined as needed to run the code
 options.nn = struct();
 options.nn.poly_method = "singh";
-options.nn.num_generators = [];
-options.nn.do_pre_order_reduction = false;
-options.nn.sort_exponents = true;
-options.nn.reuse_bounds = false;
-options.nn.bound_approx = "sample";
-options.nn.use_approx_error = false;
+
 
 % System Dynamics ---------------------------------------------------------
 
 % open-loop system
 f = @(x, u) [x(4) * cos(x(3)); x(4) * sin(x(3)); u(2) - 20; u(1) - 20 + u(3)];
-sys = nonlinearSysDT(f, options.timeStep);
+sys = nonlinearSysDT(f, dt);
 
 % load neural network controller
 % [4, 500, 2]

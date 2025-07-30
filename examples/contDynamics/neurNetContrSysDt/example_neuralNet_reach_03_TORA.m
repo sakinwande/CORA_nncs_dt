@@ -40,18 +40,31 @@ disp("BENCHMARK: Sherlock-Benchmark-9 (TORA)")
 
 R0 = interval([0.6;-0.7;-0.4;0.5],[0.7;-0.6;-0.3;0.6]);
 
-params.tFinal = 20;
+params.tFinal = 2;
 params.R0 = polyZonotope(R0);
+
+polyZono.maxPolyZonoRatio = 50;
+polyZono.maxDepGenOrder = 30;
+polyZono.restructureTechnique = 'zonotopeGirard';
 
 % Reachability Settings ---------------------------------------------------
 
-options.timeStep = 0.25;
-options.alg = 'lin';
+% options.timeStep = 0.1;
+% options.alg = 'lin';
+% options.tensorOrder = 3;
+% options.taylorTerms = 4;
+% options.zonotopeOrder = 200;
+% options.errorOrder = 10;
+% options.intermediateOrder = 20;
+
+options.timeStep = 0.1;
+options.alg = 'poly-adaptive';
 options.tensorOrder = 3;
-options.taylorTerms = 4;
-options.zonotopeOrder = 200;
-options.errorOrder = 10;
-options.intermediateOrder = 20;
+options.taylorTerms = 10;
+options.zonotopeOrder = 10;
+options.errorOrder = 1;
+options.lagrangeRem.simplify = 'simplify';
+options.polyZono = polyZono;
 
 % Options for NN evaluation -----------------------------------------------
 
@@ -62,7 +75,7 @@ options.nn.poly_method = "singh";
 
 % open-loop system
 f = @(x,u) [x(2); -x(1) + 0.1*sin(x(3)); x(4); u(1) - 10];
-sys = nonlinearSys(f);
+sys = nonlinearSysDT(f,0.1);
 
 % load neural network controller
 % [4, 100, 100, 100, 1]
@@ -70,7 +83,7 @@ load('controllerTORA.mat');
 nn = neuralNetwork.getFromCellArray(W, b, 'ReLU');
 
 % construct neural network controlled system
-sys = neurNetContrSys(sys, nn, 1);
+sys = neurNetContrSysDt(sys, nn, 0.1);
 
 % Specification -----------------------------------------------------------
 

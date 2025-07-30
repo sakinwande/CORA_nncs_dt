@@ -32,6 +32,6 @@ function Rnext = post(nlnsysDT,Rnext,uTrans,options)
 % dummy function --> unify names in the future
 params.uTrans = uTrans;
 params.U = zonotope(zeros(length(uTrans),1));
-Rnext.tp = linReach(nlnsysDT,Rnext.tp,params,options);
+Rnext = linReach(nlnsysDT,Rnext,params,options);
 
 % ------------------------------ END OF CODE ------------------------------

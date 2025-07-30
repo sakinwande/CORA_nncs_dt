@@ -40,16 +40,16 @@ params.tFinal = 5;
 params.R0 = polyZonotope(R0);
 
 
-polyZono.maxPolyZonoRatio = inf;
+polyZono.maxPolyZonoRatio = 50;
 polyZono.maxDepGenOrder = 30;
-polyZono.restructureTechnique = 'reduceFullGirard';
+polyZono.restructureTechnique = 'zonotopeGirard';
 
 % Reachability Settings ---------------------------------------------------
 
 options.timeStep = 0.1;
-options.alg = 'lin';
-options.tensorOrder = 2;
-options.taylorTerms = 1;
+options.alg = 'poly-adaptive';
+options.tensorOrder = 3;
+options.taylorTerms = 10;
 options.zonotopeOrder = 10;
 options.errorOrder = 1;
 options.lagrangeRem.simplify = 'simplify';
@@ -73,7 +73,7 @@ D_default = 10;
 % open-loop system
 f = @(x, u) [x(2); x(3); -2 * x(3) + 2 * a_lead - u_f * x(2)^2; ...
     x(5); x(6); -2 * x(6) + 2 * u(1) - u_f * x(4)^2];
-sys = nonlinearSysDT(f,0.1);
+sys = nonlinearSysDT(f,0.01);
 
 % affine map x_ = C*x + k mapping state x to input of neural network x_
 C = [0, 0, 0, 0, 0, 0; 0, 0, 0, 0, 0, 0; 0, 0, 0, 0, 1, 0; 1, 0, 0, -1, 0, 0; 0, 1, 0, 0, -1, 0];
